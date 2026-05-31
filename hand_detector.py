@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import pyautogui
 import math
+import time
 
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
@@ -24,6 +25,7 @@ MARGIN_Y = 0.2
 SMOOTHING = 0.7
 CLICK_THRESHOLD = 0.05
 FREEZE_THRESHOLD = 0.08
+DOUBLE_CLICK_INTERVAL = 0.5
 
 smooth_x, smooth_y = screen_w // 2, screen_h // 2
 left_click_ready = True
@@ -39,6 +41,7 @@ cap = cv2.VideoCapture(0)
 
 with HandLandmarker.create_from_options(options) as landmarker:
     prev_scroll_y = None  
+    last_left_click_time = 0
 
     while True:
         success, frame = cap.read()
@@ -95,7 +98,12 @@ with HandLandmarker.create_from_options(options) as landmarker:
                 prev_scroll_y = None
                 if left_dist < CLICK_THRESHOLD:
                     if left_click_ready:
-                        pyautogui.click(button='left')
+                        current_time = time.time()
+                        if current_time - last_left_click_time < DOUBLE_CLICK_INTERVAL:
+                            pyautogui.doubleClick(button='left')
+                        else:
+                            pyautogui.click(button='left')
+                        last_left_click_time = current_time
                         left_click_ready = False
                 else:
                     left_click_ready = True
