@@ -15,7 +15,6 @@ Control your laptop with hand gestures using MediaPipe and PyAutoGUI.
 Press `Q` to quit.
 
 ## TODO
-- [ ] Fix scrolling
 - [ ] Drag & Drop
 - [ ] Volume Control
 - [ ] Presentation Mode
