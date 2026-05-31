@@ -38,6 +38,8 @@ def finger_is_up(landmarks, tip_idx, pip_idx):
 cap = cv2.VideoCapture(0)
 
 with HandLandmarker.create_from_options(options) as landmarker:
+    prev_scroll_y = None  
+
     while True:
         success, frame = cap.read()
         h, w, _ = frame.shape
@@ -55,11 +57,16 @@ with HandLandmarker.create_from_options(options) as landmarker:
             middle_tip = landmarks[12]
             thumb_tip = landmarks[4]
 
+            index_up  = finger_is_up(landmarks, 8, 6)
+            middle_up = finger_is_up(landmarks, 12, 10)
+
             left_dist  = get_distance(thumb_tip, index_tip)
             right_dist = get_distance(thumb_tip, middle_tip)
 
             # Determine gesture
-            if left_dist < FREEZE_THRESHOLD:
+            if index_up and middle_up:
+                gesture = 'scroll'
+            elif left_dist < FREEZE_THRESHOLD:
                 gesture = 'left_click'
             elif right_dist < FREEZE_THRESHOLD:
                 gesture = 'right_click'
@@ -67,7 +74,25 @@ with HandLandmarker.create_from_options(options) as landmarker:
                 gesture = 'cursor'
 
             # Execute gesture
-            if gesture == 'left_click':
+            if gesture == 'scroll':
+                left_click_ready = True
+                right_click_ready = True
+                prev_scroll_y = None
+
+                index_y = (landmarks[8].y + landmarks[12].y) / 2  # 0 = top, 1 = bottom
+
+                DEAD_TOP    = 0.45
+                DEAD_BOTTOM = 0.50
+
+                if index_y < DEAD_TOP:
+                    speed = int((DEAD_TOP - index_y) * 1000)
+                    pyautogui.scroll(speed)   # scroll up
+                elif index_y > DEAD_BOTTOM:
+                    speed = int((index_y - DEAD_BOTTOM) * 1000)
+                    pyautogui.scroll(-speed)  # scroll down
+
+            elif gesture == 'left_click':
+                prev_scroll_y = None
                 if left_dist < CLICK_THRESHOLD:
                     if left_click_ready:
                         pyautogui.click(button='left')
@@ -76,6 +101,7 @@ with HandLandmarker.create_from_options(options) as landmarker:
                     left_click_ready = True
 
             elif gesture == 'right_click':
+                prev_scroll_y = None
                 if right_dist < CLICK_THRESHOLD:
                     if right_click_ready:
                         pyautogui.click(button='right')
@@ -84,6 +110,7 @@ with HandLandmarker.create_from_options(options) as landmarker:
                     right_click_ready = True
 
             else:  # cursor
+                prev_scroll_y = None
                 left_click_ready = True
                 right_click_ready = True
 
